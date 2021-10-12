@@ -1,11 +1,12 @@
 
-PasseyInverse<-function(Length1,dMeas1,depth1,la,lm,maxlength,minlength,mindepth,df1,nsolxns){
+PasseyInverse<-function(Length1,dMeas1,depth1,finit,la,lm,maxlength,minlength,mindepth,df1,nsolxns){
   MEST<-list()
   DPE<-c()
   S<-list()
   for(n in 1:nsolxns){
     print(n)
-    finit<-0.25
+    # SECTION 1: USER-ENTERED DATA
+    finit<-finit
     la<-la1
     lm<-lm1
     openindx<-1
@@ -24,7 +25,7 @@ PasseyInverse<-function(Length1,dMeas1,depth1,la,lm,maxlength,minlength,mindepth
     minratio <- min(dMeas)
     stdev <- sd(dMeas)
     numsam<-length(dMeas)
-    # Section 2
+    # SECTION 2: ADDITION OF RANDOM ERROR
     rlength <- r2*rnorm(numsam)	
     Length <- round(rlength) + Length
     for(a in 1:numsam){
@@ -50,6 +51,10 @@ PasseyInverse<-function(Length1,dMeas1,depth1,la,lm,maxlength,minlength,mindepth
       }
     }
     depth<-depth2
+    # Copied from Matlab code associated with Passey et al: Determines the number of m's distal and proximal to those that directly correspond with d's
+    #numbefore reflects the m's that are sampled into at the beginning of the profile because of sampling depth
+    #numafter reflects the m's that contribute to the isotope values of the
+    #final samples in open-ended cases.
     numbefore<-ceiling(la/avelength)
     numafter<-ceiling((lm-openindx)/avelength) +1
     lengthbefore<-avelength*rep(1,numbefore)
@@ -58,7 +63,8 @@ PasseyInverse<-function(Length1,dMeas1,depth1,la,lm,maxlength,minlength,mindepth
     numcol<-numbefore + numsam + numafter
     Length2<-c(lengthbefore,Length,lengthafter,lm)
     depth<-c(depth,lengthbefore)
-    # section 3
+    # SECTION 3: CONSTRUCTION OF AVERAGING MATRIX 
+    # SECTION 3.1 BINARY MATRIX 
     B<-matrix(nrow=Length2[1],ncol=numcol,0)
     B[,1]<-1
     for(m in 2:numcol){
@@ -71,7 +77,6 @@ PasseyInverse<-function(Length1,dMeas1,depth1,la,lm,maxlength,minlength,mindepth
     B<-rbind(B,F)
     B[((sum(Length2)-openindx)+1):sum(Length2),]<-c(0)
     B<-B[,1:(numcol-1)]
-    
     # SECTION 3.2 MATURATION AVERAGE OF BINARY MATRIX 
     o<-1
     AB <- c(finit*(colMeans(B[o:(o+lm-1),])) + fmat*(colMeans(B[o:(o+lm-1),])))
@@ -86,14 +91,13 @@ PasseyInverse<-function(Length1,dMeas1,depth1,la,lm,maxlength,minlength,mindepth
       AB<-rbind(AB,p)
     }
     AB<-AB[2:nrow(AB),] 
-    
-    ###CUMULATIVE LENGTH VECTOR 
+    # SECTION 3.3 CUMULATIVE LENGTH VECTOR 
     clength<-c(Length2[1])
     for(q in 2:numcol){
       cl<-Length2[q] + clength[q-1]
       clength<-c(clength, cl)
     }
-    # FINAL CALCULATION OF A 
+    # SECTION 3.4 FINAL CALCULATION OF A  
     A<-AB[1,]
     for(k in (numbefore+1):(numsam+numbefore)){
       E<-AB[1,]
@@ -106,8 +110,7 @@ PasseyInverse<-function(Length1,dMeas1,depth1,la,lm,maxlength,minlength,mindepth
       A <- rbind(A,meanE)
     }
     A<-A[2:nrow(A),]
-    
-    # INVERSION
+    # SECTION 4: INVERSION
     I<-diag(numsam)
     dMeasr<-dMeas + r1*rnorm(numsam) #check other rnorm above
     NB<-numbefore
@@ -157,7 +160,6 @@ PasseyInverse<-function(Length1,dMeas1,depth1,la,lm,maxlength,minlength,mindepth
   }
 
   library(dplyr)
-  
   temp<-MEST[[1]]
   for(i in 2:length(MEST)){
     temp<-cbind(temp,MEST[[i]])
